@@ -5,10 +5,9 @@ require 'jwt'         # Authenticates a GitHub App
 require 'time'        # Gets ISO 8601 representation of a Time object
 require 'net/http'
 require 'uri'
+require 'faker'
 
 class EventHandlerController < ApplicationController
-
-  puts(File.read(Rails.root + 'config/key.pem'))
 
   before_action :get_payload_and_authenticate
 
@@ -24,7 +23,7 @@ class EventHandlerController < ApplicationController
   def create
     puts('you are creating an event')
     puts("params #{params}")
-    puts(request.env['HTTP_X_GITHUB_EVENT'])
+    puts("action: #{params['action']}")
     case request.env['HTTP_X_GITHUB_EVENT']
     when 'issues'
       if params['action'] === 'create'
@@ -41,33 +40,52 @@ class EventHandlerController < ApplicationController
  end
 
   #adds an authors w/one randomly generated self-published book
-  def handle_issue_opened_event(payload)
-    #parse the payload into title as author name and desc as author bio
-    author_name = payload['issue']['title']
-    author_bio = payload['issue']['body']
-    puts("author name #{author_name}")
-    #generate some fake book data for the author
+  def handle_issue_opened_event(params)
 
+    #parse the params into title as author name and desc as author bio
+    author_name = params['issue']['title']
+    author_bio = params['issue']['body']
+
+    #generate some fake book data for the author
+    book_title = Faker::Book.title
+    book_price = Faker::Number.decimal(2)
+
+    #create the author
+    author_body = {name: author_name, biography: author_bio}
+    @author = Author.new(author_body)
+
+    #create the book
+    book_body = {title: book_title, price: book_price, author: @author, publisher: @author}
+    @book = Book.new(book_body)
+
+    if @author.save
+      if @book.save
+        render json: @author, status: :created, location: @author
+      end
+    else
+      render json: @author.errors, status: :unprocessable_entity
+    end
+   
+    
     #send a POST request to /authors w/all params & a POST request to /books w/fake params
-    body = {name: author_name, biography: author_bio}.to_json
-    puts(body)
+    # puts(body)
     # redirect to ('http://localhost:3000/authors'), body
   end
 
   #deletes an author and their books
-  def handle_issue_closed_event(payload)
-    #parse the payload to determine which author
-    author_name = payload['issue']['title']
-    author_id = payload['issue']['id']
+  def handle_issue_closed_event(params)
+    #parse the params to determine which author
+    author_name = params['issue']['title']
+    author_id = params['issue']['id']
     #send a DELETE request to authors/:id & make sure books are deleted too
     puts(author_name)
   end
 
   #updates an author's bio with the updated description
-  def handle_issue_updated_event(payload)
+  def handle_issue_updated_event(params)
     #parse the payload to determine which author
-    author_id = payload['issue']['id']
-    updated_author_bio = payload['issue']['body']
+    author_id = params['issue']['id']
+    updated_author_bio = params['issue']['body']
 
     #send a PUT request to /authors/:id with info to update
   end
@@ -104,7 +122,7 @@ class EventHandlerController < ApplicationController
     }
 
     # Cryptographically sign the JWT.
-    jwt = JWT.encode(payload, OpenSSL::PKey::RSA.new(File.read(Rails.root + 'app/key.pem')), 'RS256')
+    jwt = JWT.encode(payload, OpenSSL::PKey::RSA.new(File.read(Rails.root + 'config/key.pem')), 'RS256')
 
     # Create the Octokit client, using the JWT as the auth token.
     @app_client ||= Octokit::Client.new(bearer_token: jwt)
@@ -135,10 +153,6 @@ class EventHandlerController < ApplicationController
     our_digest = OpenSSL::HMAC.hexdigest(method, ENV['GITHUB_WEBHOOK_SECRET'], @payload_raw)
     halt 401 unless their_digest == our_digest
 
-    # The X-GITHUB-EVENT header provides the name of the event.
-    # The action value indicates the which action triggered the event.
-    # logger.debug "---- received event #{request.env['HTTP_X_GITHUB_EVENT']}"
-    # logger.debug "----    action #{@payload['action']}" unless @payload['action'].nil?
   end
 
 end
