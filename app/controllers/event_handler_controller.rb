@@ -1,158 +1,89 @@
-require 'octokit'
-require 'json'
+require 'octokit'     # interacts with Github as a bot
+require 'json'        # returns the data formatted as JSON
 require 'openssl'     # Verifies the webhook signature
 require 'jwt'         # Authenticates a GitHub App
 require 'time'        # Gets ISO 8601 representation of a Time object
-require 'net/http'
-require 'uri'
-require 'faker'
+require 'faker'       # generates fake book data
 
 class EventHandlerController < ApplicationController
 
+  include Authenticate_App
+
   before_action :get_payload_and_authenticate
 
-  def get_payload_and_authenticate
-    get_payload_request(request)
-    verify_webhook_signature
-    authenticate_app
-    # Authenticate the app installation in order to run API operations
-    authenticate_installation(@payload)
-  end
-
-
   def create
-    puts('you are creating an event')
-    puts("params #{params}")
-    puts("action: #{params['action']}")
-    case request.env['HTTP_X_GITHUB_EVENT']
-    when 'issues'
-      if params['action'] === 'create'
-        handle_issue_opened_event(params)
-      end
-      if params['action'] === 'closed'
-        handle_issue_closed_event(params)
-      end
-      if params['action'] === 'edited'
-        handle_issue_updated_event(params)
+    #make sure that this is a user-created issue & not a bot-created one (from the populate authors task)
+    if @payload['sender']['type'] == "User"
+      case request.env['HTTP_X_GITHUB_EVENT']
+      when 'issues'
+        if @payload['action'] === 'opened'
+          handle_issue_opened_event(@payload)
+        end
+        if @payload['action'] === 'closed'
+          handle_issue_closed_event(@payload)
+        end
+        if @payload['action'] === 'edited'
+          handle_issue_updated_event(@payload)
+        end
       end
     end
+  end
 
- end
-
-  #adds an authors w/one randomly generated self-published book
-  def handle_issue_opened_event(params)
-
-    #parse the params into title as author name and desc as author bio
-    author_name = params['issue']['title']
-    author_bio = params['issue']['body']
+  #adds an author w/one randomly generated self-published book
+  def handle_issue_opened_event(payload)
+    #parse the payload into title as author name and body as author bio
+    author_name = payload['issue']['title']
+    author_bio = payload['issue']['body']
+    author_issue_id = payload['issue']['id']
 
     #generate some fake book data for the author
     book_title = Faker::Book.title
     book_price = Faker::Number.decimal(2)
 
-    #create the author
-    author_body = {name: author_name, biography: author_bio}
+    #create the author and save
+    author_body = {name: author_name, biography: author_bio, issue_id: author_issue_id}
     @author = Author.new(author_body)
+    @author.save
 
     #create the book
     book_body = {title: book_title, price: book_price, author: @author, publisher: @author}
-    @book = Book.new(book_body)
+    @book = author.books.create(book_body)
 
-    if @author.save
+    #make sure that both the book & author have saved appropriately before returning the new author
       if @book.save
         render json: @author, status: :created, location: @author
+      else
+        render json: @author.errors, status: :unprocessable_entity
       end
-    else
-      render json: @author.errors, status: :unprocessable_entity
     end
-   
-    
-    #send a POST request to /authors w/all params & a POST request to /books w/fake params
-    # puts(body)
-    # redirect to ('http://localhost:3000/authors'), body
-  end
 
   #deletes an author and their books
-  def handle_issue_closed_event(params)
-    #parse the params to determine which author
-    author_name = params['issue']['title']
-    author_id = params['issue']['id']
-    #send a DELETE request to authors/:id & make sure books are deleted too
-    puts(author_name)
+  def handle_issue_closed_event(payload)
+
+    #parse the payload to determine which author by the github issue id
+    author_issue_id = payload['issue']['id']
+
+    #delete the author (& associated books based on dependency assigned in model)
+    author_to_delete = Author.find_by issue_id: author_issue_id
+    author_to_delete.destroy
   end
 
   #updates an author's bio with the updated description
-  def handle_issue_updated_event(params)
-    #parse the payload to determine which author
-    author_id = params['issue']['id']
-    updated_author_bio = params['issue']['body']
+  def handle_issue_updated_event(payload)    
+  
+    #parse the payload to determine which author by the github issue id
+    author_issue_id = payload['issue']['id']
 
-    #send a PUT request to /authors/:id with info to update
-  end
+    #grab the bio and update the author
+    updated_author_bio = payload['issue']['body']
+    @author_to_update = Author.find_by issue_id: author_issue_id
+    @author_to_update.biography = updated_author_bio
 
-  # Saves the raw payload and converts the payload to JSON format
-  def get_payload_request(request)
-    # request.body is an IO or StringIO object
-    # Rewind in case someone already read it
-    request.body.rewind
-    # The raw text of the body is required for webhook signature verification
-    @payload_raw = request.body.read
-    begin
-      @payload = JSON.parse @payload_raw
-    rescue => e
-      fail  "Invalid JSON (#{e}): #{@payload_raw}"
-    end
-  end
-
-  # Instantiate an Octokit client authenticated as a GitHub App.
-  # GitHub App authentication requires that you construct a
-  # JWT (https://jwt.io/introduction/) signed with the app's private key,
-  # so GitHub can be sure that it came from the app an not altererd by
-  # a malicious third party.
-  def authenticate_app
-    payload = {
-        # The time that this JWT was issued, _i.e._ now.
-        iat: Time.now.to_i,
-
-        # JWT expiration time (10 minute maximum)
-        exp: Time.now.to_i + (10 * 60),
-
-        # Your GitHub App's identifier number
-        iss: ENV['GITHUB_APP_IDENTIFIER']
-    }
-
-    # Cryptographically sign the JWT.
-    jwt = JWT.encode(payload, OpenSSL::PKey::RSA.new(File.read(Rails.root + 'config/key.pem')), 'RS256')
-
-    # Create the Octokit client, using the JWT as the auth token.
-    @app_client ||= Octokit::Client.new(bearer_token: jwt)
-  end
-
-  # Instantiate an Octokit client, authenticated as an installation of a
-  # GitHub App, to run API operations.
-  def authenticate_installation(payload)
-    @installation_id = payload['installation']['id']
-    @installation_token = @app_client.create_app_installation_access_token(@installation_id)[:token]
-    @installation_client = Octokit::Client.new(bearer_token: @installation_token)
-  end
-
-  # Check X-Hub-Signature to confirm that this webhook was generated by
-  # GitHub, and not a malicious third party.
-  #
-  # GitHub uses the WEBHOOK_SECRET, registered to the GitHub App, to
-  # create the hash signature sent in the `X-HUB-Signature` header of each
-  # webhook. This code computes the expected hash signature and compares it to
-  # the signature sent in the `X-HUB-Signature` header. If they don't match,
-  # this request is an attack, and you should reject it. GitHub uses the HMAC
-  # hexdigest to compute the signature. The `X-HUB-Signature` looks something
-  # like this: "sha1=123456".
-  # See https://developer.github.com/webhooks/securing/ for details.
-  def verify_webhook_signature
-    their_signature_header = request.env['HTTP_X_HUB_SIGNATURE'] || 'sha1='
-    method, their_digest = their_signature_header.split('=')
-    our_digest = OpenSSL::HMAC.hexdigest(method, ENV['GITHUB_WEBHOOK_SECRET'], @payload_raw)
-    halt 401 unless their_digest == our_digest
-
+    if @author_to_update.save
+      render json: @author_to_update, status: :created, location: @author_to_update
+    else
+      render json: @author_to_update.errors, status: :unprocessable_entity
+    end  
   end
 
 end

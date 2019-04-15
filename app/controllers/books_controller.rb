@@ -47,5 +47,6 @@ class BooksController < ApplicationController
     def book_params
       res = ActiveModelSerializers::Deserialization.jsonapi_parse(params, polymorphic: [:publisher])
       res[:publisher_type] = res[:publisher_type].singularize.capitalize
-      res    end
+      res    
+    end
 end

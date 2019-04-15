@@ -71,7 +71,6 @@ module Authenticate_App
       method, their_digest = their_signature_header.split('=')
       our_digest = OpenSSL::HMAC.hexdigest(method, ENV['GITHUB_WEBHOOK_SECRET'], @payload_raw)
       halt 401 unless their_digest == our_digest
-  
     end
 
 end
