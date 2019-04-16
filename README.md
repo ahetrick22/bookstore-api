@@ -16,7 +16,7 @@ This app uses Ruby version 2.6.0.
 10) Scroll to the bottom of the About section and generate a private key.
 11) Open the private key in a text editor and copy it as-is into a new file in the project: `config/key.pem`. It should be on several lines, beginning with "-----BEGIN RSA PRIVATE KEY-----" and ending with "-----END RSA PRIVATE KEY-----".
 12) Go to "Install app" on the left menu and install it onto your desired test repository.
-13) In the project directory, run `rails db:seed` and then start your server with `rails server --binding 0.0.0.0`. 
+13) In the project directory, run `rails db:migrate`, `rails db:seed` and then start your server with `rails server --binding 0.0.0.0`. 
 14) Go to your GitHub repository and create an issue, then close it. In your rails server terminal, you should now see a line with the installation id for the app (probably a 6 digit number). Paste that into your `local_env.yml` file inside the double quotes. 
 15) In a new terminal in your project folder, run `rake authors:populate`. You should see each author in your DB listed out in the terminal, and once the rake task is complete, refresh your issues list on the GitHub repo and you'll see each author there (title is name, description is biography). 
 
