@@ -1,8 +1,8 @@
-# BOOKSTORE-API
+# Bookstore API
 
 This app uses Ruby version 2.6.0.
 
-## INSTALL AND RUN THE GITHUB APP INTEGRATION LOCALLY
+## Install & run the GitHub app integration locally
 
 1) Clone down this repo locally and run `bundle install`.
 2) Click to create a new GitHub app at [the GitHub apps page](https://github.com/settings/apps). Give it a name. Steps 3-8 will be used to complete the remaining fields.
@@ -22,6 +22,6 @@ This app uses Ruby version 2.6.0.
 
 You are now ready to interact with the app - create a new issue to add an author to your DB, update an issue description to update the author's bio, or close the issue to delete the author and their books from the DB.
 
-## STEPS TO RUN JUST THE API LOCALLY
-1) Clone down this repo locally and run `bundle install` then `rails db:seed`.
+## Steps to run just the API locally
+1) Clone down this repo locally and run `bundle install` then `rails db:migrate` and `rails db:seed`.
 2) In a terminal, run `rails server --binding 0.0.0.0`.
