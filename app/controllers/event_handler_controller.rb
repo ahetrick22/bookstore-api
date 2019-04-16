@@ -47,7 +47,7 @@ class EventHandlerController < ApplicationController
 
     #create the book
     book_body = {title: book_title, price: book_price, author: @author, publisher: @author}
-    @book = author.books.create(book_body)
+    @book = @author.books.create(book_body)
 
     #make sure that both the book & author have saved appropriately before returning the new author
       if @book.save

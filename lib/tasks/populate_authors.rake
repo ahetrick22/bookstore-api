@@ -12,7 +12,7 @@ namespace :authors do
     puts('Authenticating app & app installation')
     authenticate_app
     #TODO hardcoded installation id & repo name - should these be params?
-    authenticate_installation(1)
+    authenticate_installation(nil)
   end
 
   #create a new issue for each author in the DB
@@ -21,7 +21,7 @@ namespace :authors do
     authors = Author.all
     authors.each do |author|
       puts("Creating author #{author.name}")
-      issue = @installation_client.create_issue('ahetrick22/learning-ruby-on-rails', author.name, author.biography)
+      issue = @installation_client.create_issue(@github_repo_name, author.name, author.biography)
       author.issue_id = issue.id
       author.save
     end

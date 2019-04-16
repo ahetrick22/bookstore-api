@@ -1,6 +1,7 @@
 module Authenticate_App
   extend ActiveSupport::Concern
 
+  #used to authenicate in the event handler controller
   def get_payload_and_authenticate
     get_payload_request(request)
     verify_webhook_signature
@@ -50,7 +51,29 @@ module Authenticate_App
     # Instantiate an Octokit client, authenticated as an installation of a
     # GitHub App, to run API operations.
     def authenticate_installation(payload)
-      @installation_id = 831932
+
+      #if there's a payload, then we are receiving a webhook and will be able to get the installation id to authenticate.
+      #this installation id should be set in the local_env.yml file so that we can also initiate requests to populate the authors
+      if payload
+        @installation_id = payload['installation']['id']
+        puts("Installation ID for local_env.yml is #{@installation_id}")
+        @github_repo_name = payload['repository']['full_name']
+        puts("GitHub repo URL for local_env.yml is #{@github_repo_name}")
+
+      #if there's not a payload, then the installation id & repo name can be grabbed from the local environment. If it's not there, it needs to 
+      #be set (can be found by creating & then deleting an issue and checking the logs.)
+      else 
+        if ENV['INSTALLATION_ID']
+          @installation_id = ENV['INSTALLATION_ID'].to_i
+          if ENV['GITHUB_REPO_NAME']
+            @github_repo_name = ENV['GITHUB_REPO_NAME']
+          else 
+            puts("No GitHub repo name found in local_env.yml. Create a Github issue and check the log to get the full name.")
+          end
+        else 
+          puts("No installation ID found in local_env.yml. Create a Github issue and check the log to get the installation id.")
+        end
+      end
       @installation_token = @app_client.create_app_installation_access_token(@installation_id)[:token]
       @installation_client = Octokit::Client.new(bearer_token: @installation_token)
     end
