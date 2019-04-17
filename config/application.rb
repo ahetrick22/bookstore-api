@@ -33,16 +33,7 @@ module BookstoreApi
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    config.before_configuration do
-      env_file = File.join(Rails.root, 'config', 'local_env.yml')
-
-      # Make sure this the app setup, which needs the environment variables, and not just the API setup
-      # If it is, then load in the environment variables
-      if YAML.load(File.open(env_file))
-        YAML.load(File.open(env_file)).each do |key, value|
-        ENV[key.to_s] = value
-      end if File.exists?(env_file)
-      end
-    end
+    # Make sure that Spring will auto-load the services files
+    Spring.watch "app/services/**"
   end
 end

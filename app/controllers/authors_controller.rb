@@ -25,7 +25,6 @@ class AuthorsController < ApplicationController
 
   # PATCH/PUT /authors/1
   def update
-    puts(author_params)
     if @author.update(author_params)
       render json: @author
     else

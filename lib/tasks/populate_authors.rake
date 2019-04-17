@@ -1,17 +1,11 @@
-require 'octokit'     #interacts with Github as a bot
-require 'json'        # returns the data formatted as JSON
-require 'openssl'     # Verifies the webhook signature
-require 'jwt'         # Authenticates a GitHub App
-require "#{Rails.root}/app/controllers/concerns/authenticate_app"
+require "#{Rails.root}/app/services/authenticate_installation"
 
-include Authenticate_App
+include AuthenticateInstallation
 
 namespace :authors do
   #use Octokit to authenticate and create an installation client
   task :authenticate do
-    puts('Authenticating app & app installation')
-    authenticate_app
-    #TODO hardcoded installation id & repo name - should these be params?
+    puts('Authenticating app installation')
     authenticate_installation(nil)
   end
 
