@@ -1,8 +1,8 @@
-# BOOKSTORE-API
+# Bookstore API
 
 This app uses Ruby version 2.6.0.
 
-## INSTALL AND RUN THE GITHUB APP INTEGRATION LOCALLY
+## Install & run the GitHub app integration locally
 
 1) Clone down this repo locally and run `bundle install`.
 2) Click to create a new GitHub app at [the GitHub apps page](https://github.com/settings/apps). Give it a name. Don't create yet - steps 3-8 will be used to complete the remaining fields.
