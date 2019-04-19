@@ -44,3 +44,10 @@ end
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 gem "active_model_serializers", "~> 0.10.2"
+
+gem 'dotenv-rails', groups: [:development, :test]
+gem 'octokit', '4.14.0'
+gem 'json', '2.2.0'
+gem 'openssl', '2.1.2'
+gem 'jwt', '2.1.0'
+gem 'faker', '1.9.3'
