@@ -16,7 +16,7 @@ This app uses Ruby version 2.6.0.
 10) Next, scroll to the bottom of the About section and generate a private key. Open the private key in a text editor and copy it as-is into a new file in the project: `config/key.pem`. It should be on several lines, beginning with "-----BEGIN RSA PRIVATE KEY-----" and ending with "-----END RSA PRIVATE KEY-----".
 11) Go to "Install app" on the left menu and install it onto your desired test repository.
 12) In the project directory, run `rails: db:migrate`, `rails db:seed` and then start your server with `rails server --binding 0.0.0.0`. 
-13) Go to your GitHub repository and create a test issue, then close it. In your rails server terminal, you should now see a line with the installation id for the app (probably a 6 digit number) and a line with the repo full name. Paste those into your `.env` file inside the double quotes. 
+13) Go to your GitHub repository and create a test issue, then close it. In your rails server terminal, within the logged parameters, you should be able to locate the installation id and the repo full_name. Paste those into your `.env` file inside the double quotes. 
 14) You're all set! To populate the issues with the authors in your DB, run `rake authors:populate` in a terminal in your project directory. You should see each author in your DB listed out in the terminal as their issue is created. Once the rake task is complete, refresh your issues list on the GitHub repo and you'll see each author there (title is name, description is biography). 
 
 You are now ready to interact with the app - create a new issue to add an author to your DB, update an issue description to update the author's bio, or close the issue to delete the author and their books from the DB.

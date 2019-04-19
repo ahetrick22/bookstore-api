@@ -1,7 +1,7 @@
 require 'singleton'
 
 class AuthenticatedGithubClient
-  # We only want to create one instance of this app client and then use it throughout
+  # We only want to create one instance of this client and then use it throughout
   include Singleton
 
   # Instantiate an Octokit client authenticated as a GitHub App.
@@ -26,10 +26,15 @@ class AuthenticatedGithubClient
   
     # Create the Octokit client, using the JWT as the auth token.
     @app_client ||= Octokit::Client.new(bearer_token: jwt)
+
+    # Create the installation token & client
+    @installation_id = ENV["INSTALLATION_ID"]
+    @installation_token = @app_client.create_app_installation_access_token(@installation_id)[:token]
+    @installation_client = Octokit::Client.new(bearer_token: @installation_token)
   end
 
   # This is the only attribute we need access to outside of the class
-  attr_accessor :app_client
+  delegate :create_issue, to: :@installation_client
 
 end
 
